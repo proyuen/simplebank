@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/proyuen/simplebank/db/util"
+	"github.com/proyuen/simplebank/util"
 	"github.com/stretchr/testify/require" // 注意：确认你的 module 名字是否是这个，如果不是请修改
 )
 
