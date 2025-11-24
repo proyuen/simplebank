@@ -42,6 +42,26 @@ func TestGetAccount(t *testing.T) {
 	require.Equal(t, account1.Currency, account2.Currency)
 	require.WithinDuration(t, account1.CreatedAt, account2.CreatedAt, time.Second)
 }
+func TestGetAccountForUpdate(t *testing.T) {
+	// 1. 先创建一个随机账户（复用你之前的 createRandomAccount）
+	account1 := createRandomAccount(t)
+
+	// 2. 调用 GetAccountForUpdate
+	account2, err := testQueries.GetAccountForUpdate(context.Background(), account1.ID)
+
+	// 3. 验证结果
+	require.NoError(t, err)       // 应该没有错误
+	require.NotEmpty(t, account2) // 结果不应该为空
+
+	// 验证查出来的数据和存进去的一样
+	require.Equal(t, account1.ID, account2.ID)
+	require.Equal(t, account1.Owner, account2.Owner)
+	require.Equal(t, account1.Balance, account2.Balance)
+	require.Equal(t, account1.Currency, account2.Currency)
+
+	// 检查时间戳（允许有一点点误差）
+	require.WithinDuration(t, account1.CreatedAt, account2.CreatedAt, time.Second)
+}
 
 func TestUpdateAccount(t *testing.T) {
 	account1 := createRandomAccount(t)
