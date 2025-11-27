@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
-	db "github.com/proyuen/simplebank/db/sqlc"
-	"github.com/proyuen/simplebank/token" // 确认路径
+	db "github.com/proyuen/simplebank/Server/db/sqlc"
+	"github.com/proyuen/simplebank/Server/token" // 确认路径
 )
 
 // 1. 修改 createAccountRequest：删掉 Owner 字段

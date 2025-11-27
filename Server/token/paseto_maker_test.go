@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/proyuen/simplebank/util"
+	"github.com/proyuen/simplebank/Server/util"
 	"github.com/stretchr/testify/require"
 )
 

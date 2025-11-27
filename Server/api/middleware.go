@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/proyuen/simplebank/token" // 记得检查这里的路径是否匹配你的项目
+	"github.com/proyuen/simplebank/Server/token" // 记得检查这里的路径是否匹配你的项目
 )
 
 const (
