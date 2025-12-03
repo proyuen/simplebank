@@ -7,7 +7,7 @@ INSERT INTO accounts(
   $1, $2, $3
 ) RETURNING *;
 
--- name: GetAccounts :one
+-- name: GetAccount :one
 SELECT * FROM accounts
 WHERE id = $1 LIMIT 1;
 
@@ -17,7 +17,7 @@ ORDER BY id
 LIMIT $1
 OFFSET $2; 
 
--- name: UpdateAccounts :one
+-- name: UpdateAccount :one
 UPDATE accounts
 SET balance = $2
 WHERE id = $1
