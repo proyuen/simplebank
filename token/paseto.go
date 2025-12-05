@@ -4,107 +4,61 @@ import (
 	"fmt"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
-	"github.com/google/uuid"
-	"golang.org/x/crypto/chacha20poly1305"
+	// V2 版本常用的库和依赖
+	"github.com/aead/chacha20poly1305"
+	"github.com/o1egl/paseto" // V2 版本的核心库
 )
 
-// PasetoMaker 是一个基于 PASETO v4 的令牌制造器
+// Maker 接口定义省略
+
 type PasetoMaker struct {
-	paseto       *paseto.V4SymmetricKey // 核心变化：不再是 []byte，而是专门的 Key 对象
+	paseto       *paseto.V2 // 关键点：V2 实例
 	symmetricKey []byte
 }
 
-// NewPasetoMaker 创建一个新的 PasetoMaker
 func NewPasetoMaker(symmetricKey string) (Maker, error) {
+	// V2 Local 密钥也必须是 32 字节
 	if len(symmetricKey) != chacha20poly1305.KeySize {
 		return nil, fmt.Errorf("invalid key size: must be exactly %d characters", chacha20poly1305.KeySize)
 	}
 
-	// 1. 将字符串转为 v4 专用的密钥对象
-	// V4SymmetricKeyFromBytes 会自动处理 32 字节的校验
-	key, err := paseto.V4SymmetricKeyFromBytes([]byte(symmetricKey))
-	if err != nil {
-		return nil, err
-	}
-
 	maker := &PasetoMaker{
-		paseto:       &key,
+		paseto:       paseto.NewV2(), // 关键：初始化 V2 实例
 		symmetricKey: []byte(symmetricKey),
 	}
 	return maker, nil
 }
 
+// CreateToken: V2 加密实现
 func (maker *PasetoMaker) CreateToken(username string, duration time.Duration) (string, error) {
-	// 1. 创建一个空的 Token 对象
-	token := paseto.NewToken()
+	// 1. 调用 NewPayload 创建结构体数据
+	payload, err := NewPayload(username, duration)
+	if err != nil {
+		return "", err
+	}
 
-	// 2. 填入数据 (Claims)
-	token.Set("username", username)               // 自定义字段
-	token.SetIssuedAt(time.Now())                 // 签发时间
-	token.SetNotBefore(time.Now())                // 生效时间
-	token.SetExpiration(time.Now().Add(duration)) // 过期时间
-
-	// 3. 加密并签名 (Encrypt)
-	// 使用 v4.Local 模式 (对应原来的 v2.Local)
-	// nil 表示没有 Footer (注脚)
-	encryptedToken := token.V4Encrypt(*maker.paseto, nil)
-
-	return encryptedToken, nil
+	// 2. 使用 V2 实例对 Payload 结构体进行加密
+	// V2 的 Encrypt 方法是通用的，会自动处理 JSON 序列化
+	return maker.paseto.Encrypt(maker.symmetricKey, payload, nil)
 }
 
+// VerifyToken: V2 解密实现
 func (maker *PasetoMaker) VerifyToken(token string) (*Payload, error) {
-	// 1. 创建解析器
-	parser := paseto.NewParser()
+	payload := &Payload{}
 
-	// 可以在这里添加额外的规则，例如：
-	// parser.AddRule(paseto.NotExpired()) // 默认已经包含此规则
+	// 1. 使用 V2 实例进行解密
+	// 如果解密失败（签名不匹配、密钥错误），会返回底层错误
+	err := maker.paseto.Decrypt(token, maker.symmetricKey, payload, nil)
 
-	// 2. 解析 Token
-	// ParseV4Local 会自动解密并验证签名、过期时间
-	parsedToken, err := parser.ParseV4Local(*maker.paseto, token, nil)
 	if err != nil {
-		// 将库的错误转换为我们自己的错误类型，方便上层处理
-		if err.Error() == "token has expired" { // 注意：实际错误判断可能需要根据库的定义微调
-			return nil, ErrExpiredToken
-		}
+		// 返回通用错误，这里就是你之前看到的 "token is invalid" 的来源
 		return nil, ErrInvalidToken
 	}
 
-	// 3. 从 Token 中提取数据还原成我们的 Payload 结构体
-	// 注意：新库返回的是 parsedToken 对象，我们需要手动映射回原来的 Payload
-	username, err := parsedToken.GetString("username")
+	// 2. 手动检查 Payload 结构体本身的有效性（是否过期）
+	err = payload.Valid()
 	if err != nil {
-		return nil, ErrInvalidToken
-	}
-
-	issuedAt, err := parsedToken.GetIssuedAt()
-	if err != nil {
-		return nil, ErrInvalidToken
-	}
-
-	expiredAt, err := parsedToken.GetExpiration()
-	if err != nil {
-		return nil, ErrInvalidToken
-	}
-
-	jti, ok := parsedToken.Claims()["jti"].(string)
-	if !ok {
-		return nil, ErrInvalidToken
-	}
-
-	// 2. 将字符串解析为 UUID 对象
-	tokenID, err := uuid.Parse(jti)
-	if err != nil {
-		return nil, ErrInvalidToken
-	}
-
-	// 构造返回 Payload
-	payload := &Payload{
-		ID:        tokenID, // 库自动生成的唯一 ID
-		Username:  username,
-		IssuedAt:  issuedAt,
-		ExpiredAt: expiredAt,
+		return nil, err // 返回 ErrExpiredToken
 	}
 
 	return payload, nil
