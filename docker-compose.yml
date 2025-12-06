@@ -1,0 +1,29 @@
+
+services:
+  # 1. 数据库服务
+  postgres:
+    image: postgres:18-alpine # 或者你之前用的 postgres:14-alpine
+    container_name: postgres18 # 给容器起个固定名字，方便查看
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=simplebank
+    ports:
+      - "5432:5432"
+  # 2. 你的 Simple Bank 后端服务
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: simple-bank
+    ports:
+      - "8080:8080"
+    environment:
+      # ⭐️ 关键点：这里必须写 @postgres，对应上面服务的名字
+      # 格式: postgres://user:password@SERVICE_NAME:PORT/dbname
+      - DBSOURCE=postgres://root:secret@postgres:5432/simplebank?sslmode=disable
+      - GIN_MODE=release # 生产模式，日志更少
+    depends_on:
+      - postgres # 告诉 Docker：先启动数据库，再启动我
+    entrypoint: ["/app/wait-for.sh", "postgres:5432","--","/app/start.sh"]
+    command: ["/app/main"]
