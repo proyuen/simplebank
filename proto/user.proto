@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package pb;
 
-import "google/protobuf/timestamps.proto";
+import "google/protobuf/timestamp.proto";
  
 option go_package = "github.com/proyuen/simple-bank/pb";
 
