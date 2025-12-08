@@ -30,16 +30,17 @@ func NewPasetoMaker(symmetricKey string) (Maker, error) {
 }
 
 // CreateToken: V2 加密实现
-func (maker *PasetoMaker) CreateToken(username string, duration time.Duration) (string, error) {
+func (maker *PasetoMaker) CreateToken(username string, duration time.Duration) (string, *Payload, error) {
 	// 1. 调用 NewPayload 创建结构体数据
 	payload, err := NewPayload(username, duration)
 	if err != nil {
-		return "", err
+		return "", payload, err
 	}
 
 	// 2. 使用 V2 实例对 Payload 结构体进行加密
 	// V2 的 Encrypt 方法是通用的，会自动处理 JSON 序列化
-	return maker.paseto.Encrypt(maker.symmetricKey, payload, nil)
+	token, err := maker.paseto.Encrypt(maker.symmetricKey, payload, nil)
+	return token, payload, err
 }
 
 // VerifyToken: V2 解密实现

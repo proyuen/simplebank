@@ -147,7 +147,7 @@ func randomUser(t *testing.T) (user db.User, password string) {
 		FullName:          util.RandomOwner(),
 		Email:             util.RandomEmail(),
 		PasswordChangedAt: time.Time{},
-		CreateAt:          time.Now(),
+		CreatedAt:         time.Now(),
 	}
 	return user, password
 }
